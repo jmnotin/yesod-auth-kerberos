@@ -1,0 +1,7 @@
+resolver: lts-8.6
+packages:
+  - '.'
+extra-deps:
+  - authenticate-kerberos-1.0.0
+flags: {}
+extra-package-dbs: []
