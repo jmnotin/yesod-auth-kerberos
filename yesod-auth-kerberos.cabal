@@ -1,5 +1,5 @@
 name:            yesod-auth-kerberos
-version:         1.4.3
+version:         1.6.0
 license:         BSD3
 license-file:    LICENSE
 author:          Arash Rouhani
@@ -15,9 +15,9 @@ description:     Kerberos Authentication for Yesod.
 library
     build-depends:   base                    >= 4.3       && < 5
                    , authenticate-kerberos   >= 1.0       && < 1.1
-                   , yesod-core              >= 1.4       && < 2.0
-                   , yesod-auth              >= 1.4       && < 2.0
-                   , yesod-form              >= 1.4       && < 2.0
+                   , yesod-core              >= 1.6       && < 2.0
+                   , yesod-auth              >= 1.6       && < 2.0
+                   , yesod-form              >= 1.6       && < 2.0
                    , bytestring              >= 0.9.1.4   && < 0.11
                    , shakespeare             >= 2.0       && < 2.1
                    , text                    >= 0.7       && < 2.0

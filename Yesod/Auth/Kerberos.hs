@@ -3,6 +3,8 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeFamilies #-}
 -- | In-built kerberos authentication for Yesod.
 --
 -- Please note that all configuration should have been done
@@ -77,6 +79,7 @@ genericAuthKerberos config = AuthPlugin "kerberos" dispatch $ \tm -> toWidget
                 }
 |]
   where
+    dispatch :: Text -> [Text] -> AuthHandler m TypedContent
     dispatch "POST" ["login"] = postLoginR config >>= sendResponse
     dispatch _ _              = notFound
 
@@ -88,25 +91,18 @@ authKerberos :: YesodAuth m => AuthPlugin m
 authKerberos = genericAuthKerberos defaultKerberosConfig
 
 -- | Handle the login form
-postLoginR :: (YesodAuth master) => KerberosConfig -> HandlerT Auth (HandlerT master IO) ()
+postLoginR :: (MonadHandler m, YesodAuth master, master ~ HandlerSite m, Auth ~ SubHandlerSite m, MonadUnliftIO m) =>
+    KerberosConfig -> m TypedContent
 postLoginR config = do
-    (mu,mp) <- lift $ runInputPost $ (,)
+    (mu,mp) <- runInputPost $ (,)
         <$> iopt textField "username"
         <*> iopt textField "password"
 
-    let errorMessage (message :: Text) = do
-        lift $ setMessage [shamlet|$newline never
-            Error: #{message}
-          |]
-        redirect LoginR
-
     case (mu,mp) of
         (Nothing, _      ) -> do
-            mr <- lift getMessageRender
-            errorMessage $ mr PleaseProvideUsername
+            loginErrorMessageI LoginR PleaseProvideUsername
         (_      , Nothing) -> do
-            mr <- lift getMessageRender
-            errorMessage $ mr PleaseProvidePassword
+            loginErrorMessageI LoginR PleaseProvidePassword
         (Just u , Just p ) -> do
           result <- liftIO $ loginKerberos (usernameModifier config u) p
           case result of
@@ -116,6 +112,8 @@ postLoginR config = do
                       , credsPlugin = "Kerberos"
                       , credsExtra  = []
                       }
-                lift $ setCreds True creds
-            kerberosError -> errorMessage (T.pack $ show kerberosError)
+                setCredsRedirect creds
+            kerberosError -> do
+                toParent <- getRouteToParent
+                loginErrorMessage (toParent LoginR) (T.pack $ show kerberosError)
 
